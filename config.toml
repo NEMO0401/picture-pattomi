@@ -1,7 +1,0 @@
-[theme]
-base="light"
-primaryColor="#3B82F6"        # 青系（Tailwindのblue-500）
-backgroundColor="#F0F4FF"     # 明るい青白背景
-secondaryBackgroundColor="#DCEAFE"  # セクション背景
-textColor="#0F172A"           # 濃いめのネイビーグレー
-font="sans serif"
