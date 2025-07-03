@@ -1,11 +1,10 @@
+
 import streamlit as st
-from pdf2image import convert_from_bytes
 from PIL import Image, ImageChops, ImageDraw
+import fitz  # PyMuPDF
 import io
 import base64
-import platform
 
-# ロゴをBase64に変換する関数
 def ImageToBase64(image: Image.Image):
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
@@ -18,28 +17,28 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ファイルアップロード（2つ）
+# ファイルアップロード
 uploaded_file1 = st.file_uploader("変更前ファイルをアップロード（PDF・PNG・JPG）", type=["pdf", "png", "jpg", "jpeg"])
 uploaded_file2 = st.file_uploader("変更後ファイルをアップロード（PDF・PNG・JPG）", type=["pdf", "png", "jpg", "jpeg"])
 
-# PDFや画像を読み込む関数（Windowsならpoppler_pathを指定）
+# PDFページを画像として読み込む関数（PyMuPDFを使用）
 def load_image(file, page_num):
-    kwargs = dict(dpi=200)
-
-    if platform.system() == "Windows":
-        kwargs["poppler_path"] = "C:/poppler-24.08.0/Library/bin"
-
     if file.name.endswith(".pdf"):
-        images = convert_from_bytes(file.read(), **kwargs)
-        if page_num < len(images):
-            return images[page_num]
+        doc = fitz.open(stream=file.read(), filetype="pdf")
+        if page_num < len(doc):
+            page = doc.load_page(page_num)
+            pix = page.get_pixmap(dpi=200)
+            image = Image.open(io.BytesIO(pix.tobytes("png")))
+            return image.convert("RGB")
         else:
             st.warning(f"{file.name} にはページ {page_num + 1} は存在しません。1ページ目を表示します。")
-            return images[0]
+            page = doc.load_page(0)
+            pix = page.get_pixmap(dpi=200)
+            return Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
     else:
         return Image.open(file).convert("RGB")
 
-# 画像を比較する関数
+# 差分を比較する関数
 def compare_images(img1, img2):
     if img1.size != img2.size:
         img2 = img2.resize(img1.size)
@@ -67,6 +66,5 @@ if uploaded_file1 and uploaded_file2:
             st.success("違いが見つかりました！")
         else:
             st.info("2つの画像／PDFページは完全に一致しています。")
-
     except Exception as e:
         st.error(f"エラーが発生しました: {e}")
