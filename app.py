@@ -3,8 +3,9 @@ from pdf2image import convert_from_bytes
 from PIL import Image, ImageChops, ImageDraw
 import io
 import base64
+import platform
 
-# Base64に変換してロゴを表示
+# ロゴをBase64に変換する関数
 def ImageToBase64(image: Image.Image):
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
@@ -17,24 +18,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ファイルアップロード
+# ファイルアップロード（2つ）
 uploaded_file1 = st.file_uploader("変更前ファイルをアップロード（PDF・PNG・JPG）", type=["pdf", "png", "jpg", "jpeg"])
 uploaded_file2 = st.file_uploader("変更後ファイルをアップロード（PDF・PNG・JPG）", type=["pdf", "png", "jpg", "jpeg"])
 
-# 画像を読み込む関数
+# PDFや画像を読み込む関数（Windowsならpoppler_pathを指定）
 def load_image(file, page_num):
-    if file.name.endswith(".pdf"):
-        # ① 一度ファイルを読み込んで変数に保存
-        file_bytes = file.read()
-        
-        # ② そのバイナリを convert_from_bytes に渡す
-        images = convert_from_bytes(
-        file_bytes,
-        dpi=200,
-        poppler_path="C:/poppler-24.08.0/Library/bin"  # ここが新しい場所
-        )
+    kwargs = dict(dpi=200)
 
-        
+    if platform.system() == "Windows":
+        kwargs["poppler_path"] = "C:/poppler-24.08.0/Library/bin"
+
+    if file.name.endswith(".pdf"):
+        images = convert_from_bytes(file.read(), **kwargs)
         if page_num < len(images):
             return images[page_num]
         else:
@@ -43,8 +39,7 @@ def load_image(file, page_num):
     else:
         return Image.open(file).convert("RGB")
 
-
-# 差分を比較する関数
+# 画像を比較する関数
 def compare_images(img1, img2):
     if img1.size != img2.size:
         img2 = img2.resize(img1.size)
